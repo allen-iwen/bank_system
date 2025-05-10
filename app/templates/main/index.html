@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">客户总数</h5>
+                    <h2 class="card-text" id="customerCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">客户经理总数</h5>
+                    <h2 class="card-text" id="managerCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">待分配客户</h5>
+                    <h2 class="card-text" id="unassignedCount">0</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6 col-lg-3 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">匹配成功率</h5>
+                    <h2 class="card-text" id="matchRate">0%</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">客户列表</h5>
+                    <button class="btn btn-primary" id="autoMatchBtn">自动匹配</button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>姓名</th>
+                                    <th>年龄</th>
+                                    <th>职业</th>
+                                    <th>总资产</th>
+                                    <th>需求</th>
+                                    <th>爱好</th>
+                                    <th>分类</th>
+                                    <th>客户经理</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customerList">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 匹配详情模态框 -->
+<div class="modal fade" id="matchModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">匹配详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>客户经理</th>
+                                <th>匹配分数</th>
+                                <th>需求匹配度</th>
+                                <th>爱好匹配度</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="matchList">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 获取客户列表
+function loadCustomers() {
+    axios.get('/customers')
+        .then(response => {
+            const customers = response.data.customers;
+            const tbody = document.getElementById('customerList');
+            tbody.innerHTML = '';
+            
+            customers.forEach(customer => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${customer.id}</td>
+                    <td>${customer.name}</td>
+                    <td>${customer.age}</td>
+                    <td>${customer.occupation}</td>
+                    <td>${(customer.total_assets / 10000).toFixed(2)}万</td>
+                    <td>${customer.demands.join(', ')}</td>
+                    <td>${customer.hobbies.join(', ')}</td>
+                    <td><span class="badge bg-${getClassificationColor(customer.classification)}">${customer.classification}</span></td>
+                    <td>${customer.manager_id || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" onclick="showMatches(${customer.id})">查看匹配</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            // 更新统计数据
+            document.getElementById('customerCount').textContent = customers.length;
+            document.getElementById('unassignedCount').textContent = 
+                customers.filter(c => !c.manager_id).length;
+            document.getElementById('matchRate').textContent = 
+                ((customers.filter(c => c.manager_id).length / customers.length * 100) || 0).toFixed(1) + '%';
+        })
+        .catch(error => {
+            console.error('加载客户列表失败:', error);
+        });
+}
+
+// 获取客户经理数量
+function loadManagerCount() {
+    axios.get('/managers')
+        .then(response => {
+            document.getElementById('managerCount').textContent = response.data.managers.length;
+        })
+        .catch(error => {
+            console.error('加载客户经理数量失败:', error);
+        });
+}
+
+// 显示匹配详情
+function showMatches(customerId) {
+    axios.get(`/customer/${customerId}/match`)
+        .then(response => {
+            const matches = response.data.matches;
+            const tbody = document.getElementById('matchList');
+            tbody.innerHTML = '';
+            
+            matches.forEach(match => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${match.manager_name}</td>
+                    <td>${(match.score * 100).toFixed(1)}%</td>
+                    <td>${(match.demands_match * 100).toFixed(1)}%</td>
+                    <td>${(match.hobbies_match * 100).toFixed(1)}%</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" onclick="assignManager(${customerId}, ${match.manager_id})">分配</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            new bootstrap.Modal(document.getElementById('matchModal')).show();
+        })
+        .catch(error => {
+            console.error('加载匹配详情失败:', error);
+        });
+}
+
+// 分配客户经理
+function assignManager(customerId, managerId) {
+    axios.post(`/customer/${customerId}/assign`, {
+        manager_id: managerId
+    })
+        .then(response => {
+            alert('分配成功！');
+            loadCustomers();
+            bootstrap.Modal.getInstance(document.getElementById('matchModal')).hide();
+        })
+        .catch(error => {
+            if (error.response) {
+                alert(error.response.data.message);
+            } else {
+                alert('分配失败，请稍后重试');
+            }
+        });
+}
+
+// 自动匹配
+document.getElementById('autoMatchBtn').addEventListener('click', function() {
+    axios.get('/auto_match')
+        .then(response => {
+            alert(`自动匹配完成！成功匹配 ${response.data.matches.length} 个客户`);
+            loadCustomers();
+        })
+        .catch(error => {
+            if (error.response) {
+                alert(error.response.data.message);
+            } else {
+                alert('自动匹配失败，请稍后重试');
+            }
+        });
+});
+
+// 获取分类对应的颜色
+function getClassificationColor(classification) {
+    const colors = {
+        'A': 'success',
+        'B': 'info',
+        'C': 'warning',
+        'D': 'secondary',
+        'E': 'danger'
+    };
+    return colors[classification] || 'secondary';
+}
+
+// 页面加载完成后执行
+document.addEventListener('DOMContentLoaded', function() {
+    loadCustomers();
+    loadManagerCount();
+});
+</script>
+{% endblock %}

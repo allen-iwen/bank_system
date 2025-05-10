@@ -1,0 +1,123 @@
+import axios from 'axios'
+
+// API基础URL
+const base = '/api'
+
+// 创建axios实例
+const api = axios.create({
+  baseURL: '/api',
+  timeout: 15000
+})
+
+// 请求拦截器
+api.interceptors.request.use(
+  config => {
+    // 从localStorage获取token
+    const token = localStorage.getItem('token')
+    if (token) {
+      // 添加token到请求头
+      config.headers['Authorization'] = `Bearer ${token}`
+    }
+    return config
+  },
+  error => {
+    console.error('请求错误：', error)
+    return Promise.reject(error)
+  }
+)
+
+// 响应拦截器
+api.interceptors.response.use(
+  response => {
+    // 如果响应包含data字段，直接返回data
+    // 这是为了兼容服务器端返回格式 {status, message, data}
+    if (response.data && response.data.hasOwnProperty('data')) {
+      return response.data
+    }
+    // 如果没有data字段，返回整个响应数据
+    return response.data
+  },
+  error => {
+    let message = '网络错误，请检查您的网络连接'
+    
+    if (error.response) {
+      // 服务器响应了但状态码不在2xx范围
+      const { status, data } = error.response
+      
+      if (status === 401) {
+        // 未授权，清除token并重定向到登录页
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        message = '登录已过期，请重新登录'
+        window.location.href = '/login'
+      } else if (status === 403) {
+        message = '没有权限访问该资源'
+      } else if (status === 404) {
+        message = '请求的资源不存在'
+      } else if (status === 500) {
+        message = '服务器内部错误'
+      } else {
+        // 优先使用服务器返回的错误消息
+        message = (data && data.message) ? data.message : '请求失败'
+      }
+    } else if (error.request) {
+      // 请求已发送但未收到响应
+      message = '服务器无响应，请稍后再试'
+    }
+    
+    // 显示错误消息（这里假设使用了Element UI的消息组件）
+    if (window.ElMessage) {
+      window.ElMessage.error(message)
+    } else {
+      console.error(message)
+    }
+    
+    return Promise.reject(error)
+  }
+)
+
+// 认证相关API
+export const auth = {
+  login: (params) => api.post('/auth/login', params),
+  register: (params) => api.post('/auth/register', params),
+  setpwd: (params) => api.post('/setpwd', params),
+  checkRole: (role) => api.get(`/role/check?role=${role}`)
+}
+
+// 客户相关API
+export const customers = {
+  getList: () => api.get('/customers'),
+  getById: (id) => api.get(`/customers/${id}`),
+  match: (id) => api.get(`/customer/${id}/match`),
+  assign: (id, data) => api.post(`/customer/${id}/assign`, data)
+}
+
+// 客户经理相关API
+export const managers = {
+  getList: () => api.get('/managers'),
+  available: () => api.get('/managers/available')
+}
+
+// 匹配相关API
+export const matching = {
+  getRecords: () => api.get('/matching_records'),
+  createMatch: (data) => api.post('/create_match', data),
+  autoMatch: () => api.get('/auto_match'),
+  start: (data) => api.post('/matching/start', data)
+}
+
+// 统计相关API
+export const statistics = {
+  getStatistics: () => api.get('/statistics'),
+  getDrawPieChart: () => api.get('/getdrawPieChart'),
+  getDrawLineChart: () => api.get('/getdrawLineChart')
+}
+
+// 用户管理相关API
+export const users = {
+  getUserListPage: (params) => api.get('/users/listpage', { params }),
+  removeUser: (params) => api.get('/user/remove', { params }),
+  batchRemoveUser: (params) => api.get('/user/bathremove', { params })
+}
+
+export default api 

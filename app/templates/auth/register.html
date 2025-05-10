@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="text-center">注册</h3>
+                </div>
+                <div class="card-body">
+                    <form id="registerForm">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">用户名</label>
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">邮箱</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="password" class="form-label">密码</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="role" class="form-label">角色</label>
+                            <select class="form-select" id="role" name="role" required>
+                                <option value="customer">客户</option>
+                                <option value="manager">客户经理</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="name" class="form-label">姓名</label>
+                            <input type="text" class="form-control" id="name" name="name" required>
+                        </div>
+                        
+                        <!-- 客户特有字段 -->
+                        <div id="customerFields" class="d-none">
+                            <div class="mb-3">
+                                <label for="age" class="form-label">年龄</label>
+                                <input type="number" class="form-control" id="age" name="age" min="18" max="100">
+                            </div>
+                            <div class="mb-3">
+                                <label for="occupation" class="form-label">职业</label>
+                                <input type="text" class="form-control" id="occupation" name="occupation">
+                            </div>
+                            <div class="mb-3">
+                                <label for="total_assets" class="form-label">总资产（元）</label>
+                                <input type="number" class="form-control" id="total_assets" name="total_assets" min="0">
+                            </div>
+                            <div class="mb-3">
+                                <label for="demands" class="form-label">需求（多选）</label>
+                                <select class="form-select" id="demands" name="demands" multiple>
+                                    <option value="储蓄">储蓄</option>
+                                    <option value="理财">理财</option>
+                                    <option value="投资">投资</option>
+                                    <option value="保险">保险</option>
+                                    <option value="贷款">贷款</option>
+                                    <option value="基金">基金</option>
+                                    <option value="股票">股票</option>
+                                    <option value="债券">债券</option>
+                                    <option value="外汇">外汇</option>
+                                    <option value="信托">信托</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- 客户经理特有字段 -->
+                        <div id="managerFields" class="d-none">
+                            <div class="mb-3">
+                                <label for="capabilities" class="form-label">专业能力（多选）</label>
+                                <select class="form-select" id="capabilities" name="capabilities" multiple>
+                                    <option value="储蓄">储蓄</option>
+                                    <option value="理财">理财</option>
+                                    <option value="投资">投资</option>
+                                    <option value="保险">保险</option>
+                                    <option value="贷款">贷款</option>
+                                    <option value="基金">基金</option>
+                                    <option value="股票">股票</option>
+                                    <option value="债券">债券</option>
+                                    <option value="外汇">外汇</option>
+                                    <option value="信托">信托</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- 共同字段 -->
+                        <div class="mb-3">
+                            <label for="hobbies" class="form-label">兴趣爱好（多选）</label>
+                            <select class="form-select" id="hobbies" name="hobbies" multiple>
+                                <option value="阅读">阅读</option>
+                                <option value="旅游">旅游</option>
+                                <option value="运动">运动</option>
+                                <option value="音乐">音乐</option>
+                                <option value="美食">美食</option>
+                                <option value="摄影">摄影</option>
+                                <option value="绘画">绘画</option>
+                                <option value="书法">书法</option>
+                                <option value="园艺">园艺</option>
+                                <option value="收藏">收藏</option>
+                                <option value="钓鱼">钓鱼</option>
+                                <option value="瑜伽">瑜伽</option>
+                            </select>
+                        </div>
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">注册</button>
+                            <a href="/auth/login" class="btn btn-link">已有账号？点击登录</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// 根据角色显示/隐藏相应字段
+document.getElementById('role').addEventListener('change', function() {
+    const customerFields = document.getElementById('customerFields');
+    const managerFields = document.getElementById('managerFields');
+    
+    if (this.value === 'customer') {
+        customerFields.classList.remove('d-none');
+        managerFields.classList.add('d-none');
+    } else {
+        customerFields.classList.add('d-none');
+        managerFields.classList.remove('d-none');
+    }
+});
+
+// 表单提交处理
+document.getElementById('registerForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        username: document.getElementById('username').value,
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value,
+        role: document.getElementById('role').value,
+        name: document.getElementById('name').value,
+        hobbies: Array.from(document.getElementById('hobbies').selectedOptions).map(option => option.value)
+    };
+    
+    if (formData.role === 'customer') {
+        formData.age = parseInt(document.getElementById('age').value);
+        formData.occupation = document.getElementById('occupation').value;
+        formData.total_assets = parseFloat(document.getElementById('total_assets').value);
+        formData.demands = Array.from(document.getElementById('demands').selectedOptions).map(option => option.value);
+    } else {
+        formData.capabilities = Array.from(document.getElementById('capabilities').selectedOptions).map(option => option.value);
+    }
+    
+    axios.post('/auth/register', formData)
+        .then(response => {
+            if (response.data.message === '注册成功') {
+                alert('注册成功！');
+                window.location.href = '/auth/login';
+            }
+        })
+        .catch(error => {
+            if (error.response) {
+                alert(error.response.data.message);
+            } else {
+                alert('注册失败，请稍后重试');
+            }
+        });
+});
+</script>
+{% endblock %}

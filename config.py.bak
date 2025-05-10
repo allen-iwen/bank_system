@@ -1,0 +1,31 @@
+import os
+import sys
+from dotenv import load_dotenv
+
+basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'))
+
+class Config:
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'hard-to-guess-string'
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+        'sqlite:///' + os.path.join(basedir, 'app.db')
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    
+    # 客户分类权重配置
+    CUSTOMER_CLASSIFICATION_WEIGHTS = {
+        'assets': 0.4,  # 总资产权重
+        'demands': 0.3,  # 需求匹配度权重
+        'hobbies': 0.3   # 爱好匹配度权重
+    }
+    
+    # 客户分类阈值
+    CLASSIFICATION_THRESHOLDS = {
+        'A': 0.8,  # 80分以上为A类
+        'B': 0.6,  # 60-80分为B类
+        'C': 0.4,  # 40-60分为C类
+        'D': 0.2,  # 20-40分为D类
+        'E': 0.0   # 20分以下为E类
+    }
+    
+    # 每个客户经理最大客户数量
+    MAX_CUSTOMERS_PER_MANAGER = 20
